@@ -1,0 +1,16 @@
+/* Finance: the few looks the kit does not carry (a table, a cap bar). Created 2026-10-25. Colours are console tokens only. */
+.fin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.fin-table th { text-align: left; font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 400; padding: 0 12px 8px 0; }
+.fin-table td { padding: 8px 12px 8px 0; border-top: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+.fin-table .num { text-align: right; font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; padding-right: 0; }
+.fin-table .dim { color: var(--muted); font-size: 13px; }
+.fin-table .when { white-space: nowrap; }
+.fin-table tfoot td { color: var(--text); border-top: 1px solid var(--text-dim); }
+.fin-bar { position: relative; height: 6px; border-radius: 3px; background: var(--surface2); margin: 8px 0 6px; overflow: hidden; }
+.fin-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.fin-mark { position: absolute; top: 0; width: 2px; height: 100%; background: var(--muted); }
+.bf-item.halt .fin-fill { background: var(--text); }
+.bf-tag.halt { color: var(--bg); background: var(--text); border-color: var(--text); }
+.fin-total { margin: 12px 0 0; color: var(--text-dim); font-size: 14px; }
+.fin-foot { margin-top: 36px; color: var(--muted); font-size: 12.5px; font-family: var(--font-mono); }
+.fin-foot p { margin: 0 0 .3em; }

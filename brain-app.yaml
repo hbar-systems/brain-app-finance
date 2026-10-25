@@ -1,0 +1,31 @@
+# Finance: brain-app manifest
+# What the brain spends, read from the world's ops/finance/finance.json: fixed lines per month, this
+# week per post against its cap (HALT states), running compute by the hour, the last ten ledger lines.
+# Read-only: no memory, no model calls, no permissions.
+# Schema: brainfoundry-nous api/schemas/brain-app.schema.json
+# Created: 2026-10-25
+
+dialect: brain-app/v1
+id: finance
+name: Finance
+version: 0.1.0
+description: "What the brain spends: fixed lines per month, this week per post with caps and HALT states, running compute by the hour and the last ledger lines. Read-only, from ops/finance/finance.json in the world."
+license: AGPL-3.0
+
+author:
+  name: hbar
+  url: https://hbar.systems
+  contact: hello@hbar.systems
+
+repo: https://github.com/hbar-systems/brain-app-finance
+
+tab:
+  label: Finance
+  route: /finance
+  order: 60
+
+entries:
+  ui_bundle: ./
+
+engines:
+  brainfoundry-nous: ">=0.13.0"
