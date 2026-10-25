@@ -19,7 +19,10 @@
   function num(x) { var n = Number(x); return isFinite(n) && x !== null && x !== '' ? n : null }
   function eur(x) { var n = num(x); return n === null ? '–' : 'EUR ' + n.toFixed(2) }
   function hours(x) { var n = num(x); return n === null ? '' : n.toFixed(1) + ' h' }
-  function sum(list, key) { return (list || []).reduce(function (a, r) { return a + (num(r[key]) || 0) }, 0) }
+  function money(x, cur) { var n = num(x); return n === null ? '–' : (cur || 'EUR') + ' ' + n.toFixed(2) }
+  // The file names a field one way in the spec and another in scripts/finance.py; take the first present.
+  function pick(o) { for (var i = 1; i < arguments.length; i++) { var v = (o || {})[arguments[i]]; if (v !== undefined && v !== null && v !== '') return v } return null }
+  function sum(list) { var keys = Array.prototype.slice.call(arguments, 1); return (list || []).reduce(function (a, r) { return a + (num(pick.apply(null, [r].concat(keys))) || 0) }, 0) }
   function isHalt(row) { return /^halt/i.test(String(row.state || '')) }
   function shape(d) { return d && typeof d === 'object' && Array.isArray(d.fixed) && Array.isArray(d.variable_by_post) }
 
@@ -40,13 +43,13 @@
   function fixedView(d) {
     var rows = d.fixed || []
     if (!rows.length) return BF.empty('No fixed lines. Monthly rent for boxes and storage appears here.')
-    var total = num((d.totals || {}).fixed_month_eur); if (total === null) total = sum(rows, 'eur_month')
+    var total = num(pick(d.totals, 'fixed_month_eur', 'fixed_eur_per_month')); if (total === null) total = sum(rows.filter(function (r) { return !r.currency || r.currency === 'EUR' }), 'eur_month', 'per_month')
     return h('table.fin-table',
       h('thead', h('tr', h('th', 'Item'), h('th', 'Provider'), h('th', 'Rate'), h('th', 'Since'), h('th.num', 'EUR / month'))),
       h('tbody', rows.map(function (r) {
-        return h('tr', h('td', r.item || ''), h('td.dim', r.provider || ''), h('td.dim', r.rate || ''), h('td.dim.when', r.since || ''), h('td.num', eur(r.eur_month)))
+        return h('tr', h('td', r.item || ''), h('td.dim', r.provider || ''), h('td.dim', r.rate || ''), h('td.dim.when', r.since || ''), h('td.num', money(pick(r, 'eur_month', 'per_month'), r.currency)))
       })),
-      h('tfoot', h('tr', h('td', { colspan: 4 }, 'Total per month'), h('td.num', eur(total)))))
+      h('tfoot', h('tr', h('td', { colspan: 4 }, 'Total per month' + (rows.some(function (r) { return r.currency && r.currency !== 'EUR' }) ? ' (EUR lines only)' : '')), h('td.num', eur(total)))))
   }
 
   function postsView(d) {
@@ -55,7 +58,7 @@
     if (!rows.length) return BF.empty('No posts with a weekly cap yet.')
     var halted = rows.filter(isHalt).length
     var list = h('ul.bf-list', rows.map(function (r) {
-      var cap = num(r.cap_eur), spent = num(r.spent_week_eur) || 0, last = num(r.spent_last_week_eur)
+      var cap = num(pick(r, 'cap_eur', 'weekly_cap_eur')), spent = num(pick(r, 'spent_week_eur', 'this_week_eur')) || 0, last = num(pick(r, 'spent_last_week_eur', 'last_week_eur'))
       var halt = isHalt(r)
       var pct = cap ? Math.min(100, spent / cap * 100) : 0
       var bar = cap ? h('div.fin-bar', h('div.fin-fill', { style: { width: pct.toFixed(1) + '%' } }),
@@ -67,8 +70,8 @@
           h('p.bf-item-meta', last === null ? 'no figure for last week' : 'last week ' + eur(last))),
         h('span.bf-tag' + (halt ? '.halt' : ''), String(r.state || (cap === null ? 'no cap' : 'OK'))))
     }))
-    var week = num(t.variable_week_eur), lastWeek = num(t.variable_last_week_eur)
-    var line = 'This week ' + eur(week === null ? sum(rows, 'spent_week_eur') : week) + ', last week ' + eur(lastWeek === null ? sum(rows, 'spent_last_week_eur') : lastWeek) + '.'
+    var week = num(pick(t, 'variable_week_eur', 'variable_this_week_eur')), lastWeek = num(t.variable_last_week_eur)
+    var line = 'This week ' + eur(week === null ? sum(rows, 'spent_week_eur', 'this_week_eur') : week) + ', last week ' + eur(lastWeek === null ? sum(rows, 'spent_last_week_eur', 'last_week_eur') : lastWeek) + '.'
     if (halted) line += ' ' + halted + (halted === 1 ? ' post is' : ' posts are') + ' at HALT: their agents and jobs stop until the week turns or hbar raises the cap.'
     return h('div', list, BF.lines(line, 'fin-total'))
   }
@@ -78,7 +81,7 @@
     if (!rows.length) return BF.empty('Nothing is running by the hour. Hourly compute never outlives a sitting.')
     return h('ul.bf-list', rows.map(function (r) {
       return h('li.bf-item', h('div.bf-item-main', h('p.bf-item-title', r.item || ''), h('p.bf-item-meta', [r.rate, hours(r.hours)].filter(Boolean).join(' · '))),
-        h('span.bf-item-side', eur(r.eur_so_far) + ' so far'))
+        h('span.bf-item-side', eur(pick(r, 'eur_so_far', 'so_far')) + ' so far'))
     }))
   }
 
@@ -87,13 +90,14 @@
     if (!rows.length) return BF.empty('No ledger lines yet.')
     return h('ul.bf-list', rows.map(function (r) {
       return h('li.bf-item', h('div.bf-item-main', h('p.bf-item-title', r.item || ''),
-        h('p.bf-item-meta', [r.date, r.kind, r.note].filter(Boolean).join(' · '))), h('span.bf-item-side', eur(r.eur)))
+        h('p.bf-item-meta', [r.date, r.kind, pick(r, 'note', 'provider')].filter(Boolean).join(' · '))), h('span.bf-item-side', eur(r.eur)))
     }))
   }
 
   // Harmonics are measured, never bought: the ledger carries them beside the euros, so the app only counts.
   function harmonicsView(d) {
-    var t = d.totals || {}, rows = d.last10 || []
+    var t = d.totals || {}, rows = d.last10 || [], hm = d.harmonics
+    if (hm && typeof hm === 'object' && num(hm.rows) !== null) return BF.note('Harmonics over ' + hm.rows + ' ledger rows: ' + (num(hm.measured) || 0) + ' measured, ' + (num(hm.zero) || 0) + ' zero, ' + (num(hm.blank) || 0) + ' blank, ' + (num(hm.na) || 0) + ' n/a. Harmonics are measured, never bought, so no euro stands beside them.')
     var total = num(t.harmonics_week), carried = rows.filter(function (r) { return num(r.harmonics) !== null || /harmonic/i.test(String(r.kind || '')) })
     var s = total !== null ? 'Harmonics this week: ' + total + '.' : 'Harmonics: ' + carried.length + ' of the last ' + rows.length + ' lines carry a harmonics figure' + (carried.length ? ', sum ' + sum(carried, 'harmonics') : '') + '.'
     return BF.note(s + ' Harmonics are measured, never bought, so no euro stands beside them.')
@@ -120,7 +124,8 @@
       section('Last lines', lastView(d)),
       h('div.bf-section', harmonicsView(d))))
     BF.clear(foot)
-    var gen = d.generated_at ? 'Generated ' + BF.when(d.generated_at) + ' (' + d.generated_at + ').' : 'No generated_at in the file.'
+    var w = d.windows && d.windows.this_week
+    var gen = (d.generated_at ? 'Generated ' + BF.when(d.generated_at) + ' (' + d.generated_at + ').' : 'No generated_at in the file.') + (w ? ' Week ' + w[0] + ' to ' + w[1] + '.' : '')
     foot.appendChild(BF.lines(gen + ' Loaded ' + from + '. Source ' + WORLD + '.', 'fin-foot'))
   }
   function renderEmpty(errs) {

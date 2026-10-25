@@ -19,7 +19,7 @@ It writes nothing: no memory, no model calls, no permissions in the manifest.
 
 ## Data source
 
-One file in the world, `ops/finance/finance.json`, written every 10 minutes by the finance agent. Keys: `fixed[]` (item, provider, rate, since, eur_month), `variable_by_post[]` (post, cap_eur, spent_week_eur, spent_last_week_eur, state), `running[]` (item, rate, hours, eur_so_far), `last10[]` (date, item, kind, eur, note), `totals{fixed_month_eur, variable_week_eur, variable_last_week_eur}`, `generated_at`.
+One file in the world, `ops/finance/finance.json`, written every 10 minutes by `scripts/finance.py`. The app reads the spec names and the names the script writes (`per_month` + `currency`, `weekly_cap_eur`, `this_week_eur`, `last_week_eur`, `so_far`, `fixed_eur_per_month`, `variable_this_week_eur`, the `harmonics` and `windows` objects). Spec keys: `fixed[]` (item, provider, rate, since, eur_month), `variable_by_post[]` (post, cap_eur, spent_week_eur, spent_last_week_eur, state), `running[]` (item, rate, hours, eur_so_far), `last10[]` (date, item, kind, eur, note), `totals{fixed_month_eur, variable_week_eur, variable_last_week_eur}`, `generated_at`.
 
 The app tries, in order:
 
